@@ -32,10 +32,9 @@ App::after(function($request, $response)
 | integrates HTTP Basic authentication for quick, simple checking.
 |
 */
-
 Route::filter('auth', function()
 {
-	if (Auth::guest())
+	if ( ! Sentry::check())
 	{
 		if (Request::ajax())
 		{
@@ -48,11 +47,21 @@ Route::filter('auth', function()
 	}
 });
 
-
-Route::filter('auth.basic', function()
+Route::filter('group', function($route, $request, $groupName)
 {
-	return Auth::basic();
+    // Find the user using the user id
+    $user = Sentry::getUser();
+
+    // Check if the user has the 'admin' permission. Also,
+    // multiple permissions may be used by passing an array
+    if (!$user->hasAccess($groupName))
+    {
+        return View::make('auth.denied')->withErrors($groupName);
+    }
+
 });
+
+
 
 /*
 |--------------------------------------------------------------------------

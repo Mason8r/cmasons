@@ -53,7 +53,58 @@ Route::get('login', function()
 
 Route::post('login', function()
 {
-	return View::make('auth.login');
+	try
+	{
+	    // Login credentials
+	    $credentials = array(
+	        'email'    => Input::get('email'),
+	        'password' => Input::get('password'),
+	    );
+
+		// Authenticate the user
+		$user = Sentry::authenticate($credentials, false);
+	}
+	catch (Cartalyst\Sentry\Users\LoginRequiredException $e)
+	{
+	    return Redirect::to( 'login' )->withErrors('Login field is required.');
+	}
+	catch (Cartalyst\Sentry\Users\PasswordRequiredException $e)
+	{
+	    return Redirect::to( 'login' )->withErrors('Password field is required.');
+	}
+	catch (Cartalyst\Sentry\Users\WrongPasswordException $e)
+	{
+	    return Redirect::to( 'login' )->withErrors('Wrong password, try again.');
+	}
+	catch (Cartalyst\Sentry\Users\UserNotFoundException $e)
+	{
+	    return Redirect::to( 'login' )->withErrors('User was not found.');
+	}
+	catch (Cartalyst\Sentry\Users\UserNotActivatedException $e)
+	{
+	   return Redirect::to( 'login' )->withErrors('User is not activated.');
+	}
+
+	// The following is only required if the throttling is enabled
+	catch (Cartalyst\Sentry\Throttling\UserSuspendedException $e)
+	{
+	    return Redirect::to( 'login' )->withErrors('User is suspended.');
+	}
+	catch (Cartalyst\Sentry\Throttling\UserBannedException $e)
+	{
+	    return Redirect::to( 'login' )->withErrors('User is banned.');
+	}
+
+	return Redirect::intended('/');
+
+});
+
+Route::get('logout' , function()
+{
+	Sentry::logout();
+
+	return Redirect::to('/');
+
 });
 
 
@@ -73,7 +124,10 @@ Route::post('login', function()
 Route::get('install', function()
 {
 	//if a group called admin exists, never do this.
-	return View::make('installation.install');
+	if(!Site::pluck('id')) {
+		return View::make('installation.install');
+	}
+	return Redirect::to('/');
 });
 
 Route::post('install', function()
@@ -118,12 +172,12 @@ Route::post('install', function()
 
     $area = new Area;
 	$area->name = 'public';
-	$area->name = 'For all posts available to the public.';
+	$area->description = 'For all posts available to the public.';
 	$area->save();
 
 	$cat = new ContentCategory;
 	$cat->name = 'default';
-	$cat->name = 'default category for all content.';
+	$cat->description = 'default category for all content.';
 	$cat->save();
 
     //create the default homepage
@@ -156,7 +210,7 @@ Route::post('install', function()
     $post = new Content;
     $post->title = 'First Post!';
     $post->slug = 'first-post';
-	$post->content = '<h1>This is my first post!</h1><p>isnt it great!</p>';
+	$post->content = '<h3>This is my first post!</h3><p>isnt it great!</p>';
 	$post->user_id = $user->id;
     $post->category_id = $cat->id;
 	$post->published = 1;
@@ -185,8 +239,60 @@ Route::post('install', function()
 	$site->main_menu	= $menu->id;
 	$site->save();
 
-	return Redirect::to('login');
+	return Redirect::to('admin');
 
+});
+
+/*
+|--------------------------------------------------------------------------
+| Administration - Sort out those pages!
+|--------------------------------------------------------------------------
+|
+| Check if user is admin
+| Display admin page - Pages, Posts, Users, fucking allsorts.
+| 
+|
+*/
+Route::get('admin', array('before' => 'auth|group:admin', function()
+{
+	return View::make('admin.dashboard');
+}));
+
+Route::get('admin/panel/{panel}', function($panel)
+{
+	//get different data for each of the fucking pages
+	switch ($panel) {
+		case 'pages':
+			$data['pages'] = Content::where('page','=',1)->get();
+			break;
+		case 'posts':
+			$data['posts'] = Content::where('page','=',0)->get();
+			break;
+		case 'users':
+			$data['users'] = Cartalyst\Sentry\Users\Eloquent\User::all();
+			break;		
+		default:
+			$data['settings'] = Site::all();
+			break;
+	}
+		
+	return View::make('admin.panel.'. $panel , $data);	
+
+});
+
+Route::post('admin/panel/{panel}/{action?}', function( $panel , $action )
+{
+
+	echo $panel;
+	echo $action;
+
+});
+
+
+
+Route::get('denied', function()
+{
+	return View::make('auth.denied');
 });
 
 
