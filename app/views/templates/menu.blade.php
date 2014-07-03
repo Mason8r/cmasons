@@ -2,8 +2,8 @@
   <div class="container">
   	<a class="navbar-brand" href="#">{{Site::pluck('name')}}</a>
 	<ul class="nav navbar-nav">
-		@foreach(Menu::find(Site::pluck('main_menu'))->pages()->get() as $item)
-			<li><a href="{{url('page/'.$item->slug)}}">{{$item->title}}</a></li>
+		@foreach($mainMenuItems as $item)
+			<li><a href="{{url('page/'.$item->slug)}}">{{$item->pivot->name}}</a></li>
 		@endforeach
 	</ul>
 

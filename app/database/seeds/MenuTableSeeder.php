@@ -3,7 +3,7 @@
 // Composer: "fzaninotto/faker": "v1.3.0"
 use Faker\Factory as Faker;
 
-class UsersTableSeeder extends Seeder {
+class MenuTableSeeder extends Seeder {
 
 	public function run()
 	{
@@ -15,8 +15,8 @@ class UsersTableSeeder extends Seeder {
 
 			]);
 		}*/
-		DB::table('users')->delete();
-		DB::table('users_groups')->delete();
+		DB::table('menus')->delete();
+		DB::table('content_menu')->delete();
 	}
 
 }

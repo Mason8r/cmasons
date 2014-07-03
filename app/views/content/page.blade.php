@@ -3,5 +3,5 @@
 @section( 'title' , $page->title )
 
 @section('content')
-    {{$page->content}}
+	{{$page->content}}
 @stop

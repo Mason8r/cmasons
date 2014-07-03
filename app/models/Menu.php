@@ -11,7 +11,8 @@ class Menu extends Eloquent {
 
 	public function pages()
 	{
-		return $this->belongsToMany('Content');
+		return $this->belongsToMany('Content')->withPivot('name');
 	}
+
 
 }

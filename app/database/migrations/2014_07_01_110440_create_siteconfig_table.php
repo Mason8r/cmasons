@@ -75,6 +75,7 @@ class CreateSiteconfigTable extends Migration {
 			$table->increments('id');
 			$table->integer('menu_id'); // 0 = all, > 0 = Access level
 			$table->integer('content_id');
+			$table->string('name'); //name to display on page
 			$table->timestamps();
 		});
 

@@ -1,5 +1,8 @@
 <?php
 
+//View Share!
+View::share( 'mainMenuItems' , Menu::find(Site::pluck('main_menu'))->pages()->where('published','=',1)->get());
+
 /*
 |--------------------------------------------------------------------------
 | Page and Post Routes
@@ -11,6 +14,7 @@
 Route::get('/', function()
 {
 	$data['page'] = Content::find(Site::pluck('homepage_id'));
+
 	return View::make('content.page' , $data );
 });
 
@@ -22,7 +26,7 @@ Route::get('page/{slug}', function($slug)
 	//If its the news page, get the news
 	if( $data['page']->id === Site::pluck('postspage_id') )
 	{
-		$data['posts'] = Content::allPosts()->get();
+		$data['posts'] = Content::allPosts()->where('published' , '=' , 1 )->get();
 		return View::make('content.news' , $data );		
 	}
 
@@ -224,8 +228,8 @@ Route::post('install', function()
 	$menu->description = 'Main menu for the site';
 	$menu->save();
 
-	$menu->pages()->attach($page);
-	$menu->pages()->attach($news);
+	$menu->pages()->attach($page , array('name' => 'Welcome'));
+	$menu->pages()->attach($news , array('name' => 'Blog'));
 
 	//Finall enter the default site shite
 	$site = new Site;
@@ -250,45 +254,269 @@ Route::post('install', function()
 |
 | Check if user is admin
 | Display admin page - Pages, Posts, Users, fucking allsorts.
+| Don't do fancy JS shit, just load it up. HTML.
 | 
 |
 */
+Route::group(array('prefix' => 'admin' , 'before' => 'auth|group:admin'), function()
+{
+
+    Route::get('content/{action?}/{id?}', function( $action = null , $id = null )
+    {
+		//Pages and Posts
+		//Actions = edit, new, unpublish, delete
+		switch ($action) {
+			case 'edit':
+			case 'new' :
+				
+				$data = retrieveContentArray();
+
+				if(isset($id)) {
+					$data['content'] = Content::find($id);
+					$data['menu'] = Content::find($id)->menus()->first();
+				}
+
+				return View::make('admin.panel.content.new' , $data );
+
+				break;
+
+			case 'publish':
+				$content = Content::find($id);
+				$content->published = ($content->published == 0 ? 1 : 0);
+				$content->save();
+				return Redirect::to('admin/content')->withMessage('Changed.');
+				break;	
+
+			case 'delete':
+				$content = Content::withTrashed()->where('id','=',$id)->first();
+
+				if($content->deleted_at) {
+					$content->restore();
+				} else {
+					$content->delete();
+				}
+		
+				return Redirect::to('admin/content')->withMessage('Deleted.');
+				break;	
+
+			default:
+				$data['content'] = Content::withTrashed()
+					->orderBy('deleted_at','asc')
+					->orderBy('page','desc')
+					->orderBy('updated_at','desc')
+					->with('menus')
+					->get();
+
+				$data['content']->load('menus');
+
+				foreach($data['content'] as $page) {
+					var_dump($page->menus->name);
+					echo '<hr />';
+				}
+
+				return View::make('admin.panel.content.main' , $data );
+				break;
+		}
+ 	});
+
+	//is this worth it?
+	Route::post( 'content/{action}/{id?}' , function( $action , $id = null ) {
+
+		Input::flash();
+
+		$data = Input::all();
+
+		$rules = array(
+			'title' 		=> array('required', (is_null($id) ? 'unique:content,title' : '')),
+			'slug' 			=> array('required', (is_null($id) ? 'unique:content,slug' : '')),
+			'content'		=> array('required'),
+			'menu_name'		=> array('required', (is_null($id) ? 'unique:content_menu,name' : '')),
+			);
+
+		$validation = Validator::make( $data, $rules );
+
+		if( $validation->fails() )
+		{
+			if($action=='edit') {
+				return Redirect::to( 'admin/content/edit/'. $id )->withErrors($validation)->withInput();
+			}
+			return Redirect::to('admin/content/new')->withErrors($validation)->withInput();
+			
+		}
+
+		//Add the new page!
+		if(is_null($id)) {
+
+	    	$content = new Content;
+
+		} else {
+
+			$content = Content::find($id);
+
+		}
+
+	    $content->title = $data['title'];
+	    $content->slug = $data['slug'];
+		$content->content = $data['content'];
+		$content->user_id = $data['user_id'];
+	    $content->category_id = $data['category_id'];
+		$content->published = $data['published'];
+		$content->edited_by = $data['user_id'];
+		$content->area_id = $data['area_id'];
+		$content->page = $data['page'];
+		$content->save();
+
+		//if it's a page, add it to the menu.
+		if($content->page) {
+			
+			//Remove the old menu and add the new
+			$content->menus()->sync(array($data['menu_id'] => array('name' => ($data['menu_name'] == '' ? $data['title'] : $data['menu_name']))));
+			//$menu = Menu::find($data['menu_id']);
+
+			//$menu->pages()->attach($content , array('name' => ($data['menu_name'] == '' ? $data['title'] : $data['menu_name'])));
+		}
+
+		return Redirect::to('admin/content')->withMessage('New page '.$data['title'].' added!');
+
+	});
+
+	Route::get('/', function()
+	{
+		return Redirect::to('admin/content');
+	});
+
+});
+
+
+
+
+/*
+
 Route::get('admin', array('before' => 'auth|group:admin', function()
 {
 	return View::make('admin.dashboard');
 }));
 
-Route::get('admin/panel/{panel}', function($panel)
+//////
+Route::get('admin/panel/{panel?}/{action?}', array('before' => 'auth|group:admin', function($panel = 'pages', $action = false)
 {
-	//get different data for each of the fucking pages
-	switch ($panel) {
-		case 'pages':
-			$data['pages'] = Content::where('page','=',1)->get();
-			break;
-		case 'posts':
-			$data['posts'] = Content::where('page','=',0)->get();
-			break;
-		case 'users':
-			$data['users'] = Cartalyst\Sentry\Users\Eloquent\User::all();
-			break;		
-		default:
-			$data['settings'] = Site::all();
-			break;
+	$data['panel'] = $panel;
+	$data['action'] = $action;
+	return View::make('admin.main' , $data );
+}));
+////
+
+Route::get('admin/panel/{panel}/{action?}' , function($panel, $action = false)
+{
+	if(!$action) {
+		//get different data for each of the fucking pages
+		switch ($panel) {
+			case 'pages':
+				$data['pages'] = Content::where('page','=',1)->get();
+				break;
+			case 'posts':
+				$data['posts'] = Content::where('page','=',0)->get();
+				break;
+			case 'users':
+				$data['users'] = Cartalyst\Sentry\Users\Eloquent\User::all();
+				break;		
+			default:
+				$data['settings'] = Site::all();
+				break;
+		}
+			
+		return View::make('admin.panel.'. $panel , $data);	
 	}
-		
-	return View::make('admin.panel.'. $panel , $data);	
+
+	if($action=='new') {
+		return Redirect::to( 'admin/content/new/' . $panel );
+	}
+	
+
+});
+
+//Add a new page or post
+Route::get('admin/content/new/{type}' , function( $type ) {
+
+	$data['type'] = $type;
+
+	$db['menus'] = Menu::all();
+	$db['areas'] = Area::all();
+	$db['categories'] = ContentCategory::all();
+
+	//extract all the data needed from the mother fucking DB
+	foreach ($db as $key => $objects ) {
+		foreach ($objects as $value ) {
+			$data[$key][$value->id] = $value->name;
+		}
+	}
+
+	return View::make('admin.panel.content.new' , $data );
+
+});
+//Add a new page or post
+Route::post('admin/content/new/{type}' , function( $type ) {
+
+	Input::flash();
+
+	$data = Input::all();
+
+	$rules = array(
+		'title' 	=> 'required',
+		'slug' 		=> 'required',
+		'content'	=> 'required',
+		);
+
+	$validation = Validator::make( $data, $rules );
+
+	if( $validation->fails() )
+	{
+		return Redirect::to( 'admin/content/new/' . $data['page'] )->withErrors($validation)->withInput();
+	}
+
+	$post = new Content;
+    $post->title = $data['title'];
+    $post->slug = urlencode($data['slug']);
+	$post->content = $data['content'];
+	$post->user_id = $data['user_id'];
+    $post->category_id = $data['category_id'];
+	$post->published = $data['published'];
+	$post->edited_by = 0;
+	$post->area_id = $data['area_id'];
+	$post->page = ($data['page'] == 'page' ? 1 : 0);
+	$post->save();
+
+	return Redirect::to('admin')->withMessage('Success!');
 
 });
 
 Route::post('admin/panel/{panel}/{action?}', function( $panel , $action )
 {
+	//get different data for each of the fucking pages
+	//pages & posts	
+	switch ($panel) {
+		case 'users':
+			//Users controller right here man...
+			return 'USERS!';
+			break;
+		case 'main':
+			//Users controller right here man...
+			return 'MAIN SITE SETTINGS!';
+			break;
+		default:
+			# code...
+			break;
+	}
 
+	//users
+	//main
 	echo $panel;
 	echo $action;
+	echo Input::get('id');
 
 });
 
-
+*/
 
 Route::get('denied', function()
 {

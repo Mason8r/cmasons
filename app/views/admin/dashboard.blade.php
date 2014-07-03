@@ -1,27 +1,25 @@
 @extends( 'templates.default' )
 
-@section( 'title' , 'Admin Dashboard' )
-
 @section('content')
+
 <h1>{{Site::pluck('name')}} Admin Dashboard</h1>
 <div class="row">
 	<div class="col-sm-2">
 		<ul class="nav nav-pills nav-stacked">
-			<li><a href="#" class="admin-nav" id="pages">Pages</a></li>
-			<li><a href="#" class="admin-nav" id="posts">Posts</a></li>
+			<li><a href="{{url('admin/content')}}" id="content">Content</a></li>
 			<hr />
-			<li><a href="#" class="admin-nav" id="main">Main</a></li>
-			<li><a href="#" class="admin-nav" id="users">Users</a></li>
+			<li><a href="{{url('admin/settings')}}" id="main">Main</a></li>
+			<li><a href="{{url('admin/users')}}" id="users">Users</a></li>
 		</ul>
 	</div>
-	<div class="col-sm-8">
+	<div class="col-sm-10">
 
-		<div id="admin-panel" ></div>
+		@yield('panel')
 
 	</div>
 </div>
 @stop
 
 @section('script')
-<script src="{{asset('js/admin.js')}}"></script>
+
 @stop

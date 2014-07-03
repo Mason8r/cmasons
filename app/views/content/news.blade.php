@@ -8,6 +8,6 @@
 	   		<hr />
 	   		<h2><a href="{{url('post/'.$post->slug)}}">{{$post->title}}</a></h2>
 	   		<p>{{Sentry::findUserById($post->user_id)->first_name}} | {{ date('d/m/y' , strtotime( $post->created_at ) )}}</p>
-	   		<p>{{$post->content}}</p>
+	   		<p>{{substr($post->content,0,100)}}...</p>
 	   	@endforeach
 @stop
