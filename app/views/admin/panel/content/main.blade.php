@@ -18,7 +18,6 @@
 		  	<tr>
 		  		<th>ID</th>
 		  		<th>Name</th>
-		  		<th>Slug</th>
 		  		<th>Creator</th>
 		  		<th>Last Edited</th>
 		  		<th>Area</th>
@@ -29,8 +28,11 @@
 		    @foreach($content as $page)
 		    	<tr {{($page->deleted_at != null ? 'class="danger"' : '')}} >
 		    		<td>{{$page->id}}</td>
-		    		<td>{{$page->title}}</td>
-		    		<td>{{$page->slug}}</td>
+		    		<td>{{$page->title}} 
+		    		@foreach($page->menus as $menu)
+		    			({{$menu->pivot->name}}) 
+		    		@endforeach
+		    		</td>
 		    		<td>{{Sentry::findUserById($page->user_id)->first_name}}</td>
 		    		<td>{{date('d/m/y H:m' , strtotime($page->updated_at))}}</td>
 		    		<td>{{Area::find($page->area_id)->pluck('name')}}</td>

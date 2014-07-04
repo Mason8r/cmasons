@@ -307,13 +307,6 @@ Route::group(array('prefix' => 'admin' , 'before' => 'auth|group:admin'), functi
 					->with('menus')
 					->get();
 
-				$data['content']->load('menus');
-
-				foreach($data['content'] as $page) {
-					var_dump($page->menus->name);
-					echo '<hr />';
-				}
-
 				return View::make('admin.panel.content.main' , $data );
 				break;
 		}

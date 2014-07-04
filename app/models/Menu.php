@@ -14,5 +14,4 @@ class Menu extends Eloquent {
 		return $this->belongsToMany('Content')->withPivot('name');
 	}
 
-
 }
