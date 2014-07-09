@@ -8,15 +8,19 @@ class AreasTableSeeder extends Seeder {
 	public function run()
 	{
 		
-		/*$faker = Faker::create();
+		DB::table('areas')->delete();
+
+		$faker = Faker::create();
 
 		foreach(range(1, 10) as $index)
 		{
-			Area::create([
+			Area::create([				
+				'name' 			=> $faker->unique()->word,
+				'description' 	=> $faker->sentence($nbWords = 6),
 
 			]);
-		}*/
-		DB::table('areas')->delete();
+		}
+
 	}
 
 }

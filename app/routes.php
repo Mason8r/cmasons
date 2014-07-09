@@ -13,9 +13,24 @@ View::share( 'mainMenuItems' , Menu::find(Site::pluck('main_menu'))->pages()->wh
 */
 Route::get('/', function()
 {
-	$data['page'] = Content::find(Site::pluck('homepage_id'));
+	//Hack to force an error if there is no content. 
+	try {
 
-	return View::make('content.page' , $data );
+		$data['page'] = Content::find(Site::pluck('homepage_id'));
+
+		//Hack to force an error.
+		$data['page']->id;
+
+
+		return View::make('content.page' , $data );
+
+	} 
+	catch (ErrorException $e) {
+
+		//if the homepage doesn't exist, the site needs installing.
+		return Redirect::to('install');
+
+	}
 });
 
 Route::get('page/{slug}', function($slug)
@@ -26,7 +41,9 @@ Route::get('page/{slug}', function($slug)
 	//If its the news page, get the news
 	if( $data['page']->id === Site::pluck('postspage_id') )
 	{
-		$data['posts'] = Content::allPosts()->where('published' , '=' , 1 )->get();
+		$data['posts'] = Content::allPosts()->where('published' , '=' , 1 )
+		->orderBy('created_at','desc')
+		->get();
 		return View::make('content.news' , $data );		
 	}
 
@@ -323,7 +340,8 @@ Route::group(array('prefix' => 'admin' , 'before' => 'auth|group:admin'), functi
 			'title' 		=> array('required', (is_null($id) ? 'unique:content,title' : '')),
 			'slug' 			=> array('required', (is_null($id) ? 'unique:content,slug' : '')),
 			'content'		=> array('required'),
-			'menu_name'		=> array('required', (is_null($id) ? 'unique:content_menu,name' : '')),
+			'menu_name'		=> array((is_null($id) ? 'unique:content_menu,name' : '')),
+			'image'			=> array('mimes:jpeg,jpg,png,gif','max:5000')
 			);
 
 		$validation = Validator::make( $data, $rules );
@@ -334,7 +352,6 @@ Route::group(array('prefix' => 'admin' , 'before' => 'auth|group:admin'), functi
 				return Redirect::to( 'admin/content/edit/'. $id )->withErrors($validation)->withInput();
 			}
 			return Redirect::to('admin/content/new')->withErrors($validation)->withInput();
-			
 		}
 
 		//Add the new page!
@@ -348,6 +365,17 @@ Route::group(array('prefix' => 'admin' , 'before' => 'auth|group:admin'), functi
 
 		}
 
+		if(Input::file('image')) {
+
+			$destination = public_path().'/uploads/content/images/';
+			$name = str_random(10) . '.' . Input::file('image')->getClientOriginalExtension();
+			$upload = Input::file('image')->move( $destination , $name );
+			
+			$content->image = asset('/uploads/content/images/' . $name );
+
+		}
+
+		//Save the content
 	    $content->title = $data['title'];
 	    $content->slug = $data['slug'];
 		$content->content = $data['content'];
@@ -379,137 +407,6 @@ Route::group(array('prefix' => 'admin' , 'before' => 'auth|group:admin'), functi
 	});
 
 });
-
-
-
-
-/*
-
-Route::get('admin', array('before' => 'auth|group:admin', function()
-{
-	return View::make('admin.dashboard');
-}));
-
-//////
-Route::get('admin/panel/{panel?}/{action?}', array('before' => 'auth|group:admin', function($panel = 'pages', $action = false)
-{
-	$data['panel'] = $panel;
-	$data['action'] = $action;
-	return View::make('admin.main' , $data );
-}));
-////
-
-Route::get('admin/panel/{panel}/{action?}' , function($panel, $action = false)
-{
-	if(!$action) {
-		//get different data for each of the fucking pages
-		switch ($panel) {
-			case 'pages':
-				$data['pages'] = Content::where('page','=',1)->get();
-				break;
-			case 'posts':
-				$data['posts'] = Content::where('page','=',0)->get();
-				break;
-			case 'users':
-				$data['users'] = Cartalyst\Sentry\Users\Eloquent\User::all();
-				break;		
-			default:
-				$data['settings'] = Site::all();
-				break;
-		}
-			
-		return View::make('admin.panel.'. $panel , $data);	
-	}
-
-	if($action=='new') {
-		return Redirect::to( 'admin/content/new/' . $panel );
-	}
-	
-
-});
-
-//Add a new page or post
-Route::get('admin/content/new/{type}' , function( $type ) {
-
-	$data['type'] = $type;
-
-	$db['menus'] = Menu::all();
-	$db['areas'] = Area::all();
-	$db['categories'] = ContentCategory::all();
-
-	//extract all the data needed from the mother fucking DB
-	foreach ($db as $key => $objects ) {
-		foreach ($objects as $value ) {
-			$data[$key][$value->id] = $value->name;
-		}
-	}
-
-	return View::make('admin.panel.content.new' , $data );
-
-});
-//Add a new page or post
-Route::post('admin/content/new/{type}' , function( $type ) {
-
-	Input::flash();
-
-	$data = Input::all();
-
-	$rules = array(
-		'title' 	=> 'required',
-		'slug' 		=> 'required',
-		'content'	=> 'required',
-		);
-
-	$validation = Validator::make( $data, $rules );
-
-	if( $validation->fails() )
-	{
-		return Redirect::to( 'admin/content/new/' . $data['page'] )->withErrors($validation)->withInput();
-	}
-
-	$post = new Content;
-    $post->title = $data['title'];
-    $post->slug = urlencode($data['slug']);
-	$post->content = $data['content'];
-	$post->user_id = $data['user_id'];
-    $post->category_id = $data['category_id'];
-	$post->published = $data['published'];
-	$post->edited_by = 0;
-	$post->area_id = $data['area_id'];
-	$post->page = ($data['page'] == 'page' ? 1 : 0);
-	$post->save();
-
-	return Redirect::to('admin')->withMessage('Success!');
-
-});
-
-Route::post('admin/panel/{panel}/{action?}', function( $panel , $action )
-{
-	//get different data for each of the fucking pages
-	//pages & posts	
-	switch ($panel) {
-		case 'users':
-			//Users controller right here man...
-			return 'USERS!';
-			break;
-		case 'main':
-			//Users controller right here man...
-			return 'MAIN SITE SETTINGS!';
-			break;
-		default:
-			# code...
-			break;
-	}
-
-	//users
-	//main
-	echo $panel;
-	echo $action;
-	echo Input::get('id');
-
-});
-
-*/
 
 Route::get('denied', function()
 {

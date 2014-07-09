@@ -51,14 +51,14 @@
 		    			@endif
 		    		</td>
 		    		<td><a href="{{url('admin/content/edit/'.$page->id)}}" class="panel-nav" id="edit" >Edit</a></td>
-		    		<td>
+		    		<td @if($page->deleted_at != null) colspan="3" align="center" @endif>
 		    			@if($page->deleted_at == null)
 		    				<a href="{{url('admin/content/delete/'.$page->id)}}"  class="panel-nav" id="delete" >Delete</a>
 		    			@else
 		    				<a href="{{url('admin/content/delete/'.$page->id)}}"  class="panel-nav" id="delete" >Revive!</a>
 		    			@endif
 		    		</td>
-		    		
+		    		@if($page->deleted_at == null)
 		    		<td><a href="{{url('admin/content/publish/'.$page->id)}}"  class="panel-nav" id="publish" >
 		    			@if($page->published)
 		    				Unpublish
@@ -66,6 +66,7 @@
 		    				Publish
 		    			@endif
 		    		</a></td>
+		    		@endif
 		    	</tr>
 		    @endforeach
 		  </table>

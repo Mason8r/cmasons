@@ -38,6 +38,7 @@ class CreateSiteconfigTable extends Migration {
 			$table->integer('edited_by'); //user ID of last editor
 			$table->integer('area_id'); //Access level?
 			$table->integer('page'); //if it's not a page, it's a blog post
+			$table->string('image'); //if it's not a page, it's a blog post
 			$table->softDeletes();
 			$table->timestamps();
 		});

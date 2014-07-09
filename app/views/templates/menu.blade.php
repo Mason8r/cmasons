@@ -1,6 +1,6 @@
 <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
   <div class="container">
-  	<a class="navbar-brand" href="#">{{Site::pluck('name')}}</a>
+  	<a class="navbar-brand" href="{{url('/')}}">{{Site::pluck('name')}}</a>
 	<ul class="nav navbar-nav">
 		@foreach($mainMenuItems as $item)
 			<li><a href="{{url('page/'.$item->slug)}}">{{$item->pivot->name}}</a></li>
