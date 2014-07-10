@@ -1,5 +1,5 @@
 <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
-  <div class="container">
+  <div class="container main">
   	<a class="navbar-brand" href="{{url('/')}}">{{Site::pluck('name')}}</a>
 	<ul class="nav navbar-nav">
 		@foreach($mainMenuItems as $item)

@@ -18,6 +18,13 @@
 				{{ Form::submit('Login', array( 'class' => 'btn btn-primary btn-lg btn-block' )) }}
 			</div>
 			{{ Form::close() }}
+
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-4 col-sm-offset-4">
+			{{link_to('account/forgotten-password', 'Forgotten Your Password?', $attributes = array('class' => 'btn btn-primary btn-xs'), $secure = null);}}
+			{{link_to('account/register', 'Register', $attributes = array('class' => 'btn btn-primary btn-xs'), $secure = null);}}
 		</div>
 	</div>
 @stop

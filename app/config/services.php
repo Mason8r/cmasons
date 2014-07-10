@@ -15,8 +15,8 @@ return array(
 	*/
 
 	'mailgun' => array(
-		'domain' => '',
-		'secret' => '',
+		'domain' => 'stuartmason.co.uk',
+		'secret' => 'key-74lu84mp75gc89yd6ww1pqz6n1141zf2',
 	),
 
 	'mandrill' => array(
