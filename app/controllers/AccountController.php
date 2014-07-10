@@ -90,7 +90,7 @@ class AccountController extends BaseController {
 		    if ($user->attemptActivation($code))
 		    {
 		        
-		        //Do we need to add groups here? As per registration code? 		        
+		        //Do we need to add groups here? As per registration code? /		        
 
 		        Mail::queue('emails.account.activated', $data, function( $message ) use ( $user )
 				{
